@@ -1,0 +1,29 @@
+{
+    "name": "gijsbos/entities",
+    "description": "PHP Entities",
+    "keywords": [
+        "entities"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Gijs and contributors",
+            "homepage": "https://github.com/gijsbos/entities/graphs/contributors"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^5.7 || ^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "gijsbos\\Entities\\": "src/"
+        }
+    },
+    "require": {
+        "gijsbos/stringfuncs": "^1.2",
+        "gijsbos/extfuncs": "^1.0",
+        "gijsbos/logging": "^1.0",
+        "gijsbos/classparser": "^1.0"
+    }
+}
