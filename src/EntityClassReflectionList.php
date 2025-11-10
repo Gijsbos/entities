@@ -24,6 +24,14 @@ class EntityClassReflectionList
     }
 
     /**
+     * setList
+     */
+    public function setList(array $list)
+    {
+        $this->list = $list;
+    }
+
+    /**
      * getList
      */
     public function getList() : array
