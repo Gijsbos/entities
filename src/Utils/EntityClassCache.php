@@ -1,12 +1,8 @@
 <?php
 declare(strict_types=1);
 
-namespace gijsbos\Entities\Utils;
-
-use gijsbos\ClassParser\ClassParser;
-use gijsbos\Entities\EntityClass;
 use gijsbos\Entities\EntityClassReflection;
-use ReflectionClass;
+use gijsbos\Entities\EntityClassReflectionList;
 
 use function gijsbos\Logging\Library\log_info;
 
@@ -41,11 +37,19 @@ class EntityClassCache
     }
 
     /**
+     * getCacheFolder
+     */
+    private function getCacheFolder()
+    {
+        return "cache";
+    }
+
+    /**
      * getCacheFileFilePath
      */
     private function getCacheFileFilePath(string $className) : false | string
     {
-        $cacheFolder = "cache";
+        $cacheFolder = $this->getCacheFolder();
 
         // Not found
         if($cacheFolder === false)
@@ -200,32 +204,29 @@ class EntityClassCache
     }
 
     /**
-     * readFolder
+     * getEntityClassReflectionListFromCache
      */
-    public static function readFolder(string $folderPath)
+    public function getEntityClassReflectionListFromCache() : EntityClassReflectionList
     {
-        foreach(scandir($folderPath) as $item)
-        {
-            if($item !== "." && $item !== "..")
-            {
-                $filePath = "$folderPath/$item";
+        $cacheFolder = $this->getCacheFolder();
 
-                // Get className from file
-                $className = ClassParser::getClassName($filePath, $reflection);
-                
-                // Process entity classes
-                if($reflection->isSubclassOf(EntityClass::class))
-                    (new self())->get($className);
+        $entityClassReflectionList = new EntityClassReflectionList();
+
+        if(is_dir($cacheFolder))
+        {
+            foreach(scandir($cacheFolder) as $item)
+            {
+                if($item !== "." && $item !== "..")
+                {
+                    $path = "$cacheFolder/$item";
+
+                    $entityClassReflection = EntityClassReflection::unserialize(file_get_contents($path));
+
+                    $entityClassReflectionList->add($entityClassReflection);
+                }
             }
         }
-    }
-
-    /**
-     * readFolders
-     */
-    public static function readFolders(array $folders)
-    {
-        foreach($folders as $folderPath)
-            self::readFolder($folderPath);
+        
+        return $entityClassReflectionList;
     }
 }
