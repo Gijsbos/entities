@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+namespace gijsbos\Entities\Utils;
+
+use ReflectionClass;
 use gijsbos\Entities\EntityClassReflection;
 use gijsbos\Entities\EntityClassReflectionList;
 
