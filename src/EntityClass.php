@@ -6,7 +6,7 @@ namespace gijsbos\Entities;
 use Exception;
 use ReflectionClass;
 use stdClass;
-use gijsbos\Entities\Parsers\EntityClassPropertyValueParser;
+use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 
 /**
  * EntityClass
@@ -111,7 +111,7 @@ class EntityClass extends stdClass
     {
         if($customProperty instanceof EntityClassProperty)
         {
-            $this->$propertyName = EntityClassPropertyValueParser::parse($customProperty, $value);
+            $this->$propertyName = EntityClassPropertyParser::parse($customProperty, $value);
         }
         else if(is_callable($customProperty))
         {
@@ -172,7 +172,7 @@ class EntityClass extends stdClass
 
                         // Entity class property found
                         if($entityClassProperty !== false)
-                            $this->$propertyName = EntityClassPropertyValueParser::parse($entityClassProperty, $value, $forceUnknownProperties);
+                            $this->$propertyName = EntityClassPropertyParser::parse($entityClassProperty, $value, $forceUnknownProperties);
 
                         // Entity class property not found
                         else

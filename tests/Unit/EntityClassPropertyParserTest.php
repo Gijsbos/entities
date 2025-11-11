@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use gijsbos\Entities\EntityClass;
 use gijsbos\Entities\Parsers\EntityClassParser;
-use gijsbos\Entities\Parsers\EntityClassPropertyValueParser;
+use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -86,7 +86,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "hello world";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals("hello world", $result);
     }
@@ -99,7 +99,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "1";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(1, $result);
     }
@@ -112,7 +112,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "1.1";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(1.1, $result);
     }
@@ -125,7 +125,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "1.1";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(1.1, $result);
     }
@@ -138,7 +138,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "false";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(false, $result);
     }
@@ -151,7 +151,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "1";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(1, $result);
     }
@@ -164,7 +164,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "1.1";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(1.1, $result);
     }
@@ -177,7 +177,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "false";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals("false", $result);
     }
@@ -190,7 +190,7 @@ final class EntityClassPropertyParserTest extends TestCase
 
         $value = "false";
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals(false, $result);
     }
@@ -206,7 +206,7 @@ final class EntityClassPropertyParserTest extends TestCase
             "intProperty" => 1,
         ];
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertInstanceOf(EntityClassPropertyTestClass::class, $result);
     }
@@ -222,7 +222,7 @@ final class EntityClassPropertyParserTest extends TestCase
             "intProperty" => 1,
         ];
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertInstanceOf(EntityClassPropertyTestClass::class, $result);
     }
@@ -237,7 +237,7 @@ final class EntityClassPropertyParserTest extends TestCase
             "property" => "hi",
         ];
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertInstanceOf(EntityClassPropertyTestClassTwo::class, $result);
     }
@@ -257,7 +257,7 @@ final class EntityClassPropertyParserTest extends TestCase
             ],
         ];
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertEquals("class1", $result[0]->stringProperty);
         $this->assertEquals("class2", $result[1]->stringProperty);
@@ -278,7 +278,7 @@ final class EntityClassPropertyParserTest extends TestCase
             ],
         ];
 
-        $result = EntityClassPropertyValueParser::parse($property, $value, true, true);
+        $result = EntityClassPropertyParser::parse($property, $value, true, true);
 
         $this->assertInstanceOf(EntityClassPropertyTestClass::class, $result[0]);
         $this->assertEquals("class1", $result[0]->stringProperty);

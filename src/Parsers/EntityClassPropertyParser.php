@@ -4,15 +4,15 @@ declare(strict_types=1);
 namespace gijsbos\Entities\Parsers;
 
 use DateTime;
+use ReflectionClass;
 use gijsbos\Entities\EntityClass;
 use gijsbos\Entities\EntityClassProperty;
 use gijsbos\Entities\EntityClassType;
-use ReflectionClass;
 
 /**
- * EntityClassPropertyValueParser
+ * EntityClassPropertyParser
  */
-class EntityClassPropertyValueParser
+class EntityClassPropertyParser
 {
     /**
      * __construct
