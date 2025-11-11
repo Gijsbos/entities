@@ -6,29 +6,21 @@ namespace gijsbos\Entities\Utils;
 use ReflectionClass;
 use gijsbos\Entities\EntityClassReflection;
 use gijsbos\Entities\EntityClassReflectionList;
+use gijsbos\Logging\Classes\LogEnabledClass;
 
 use function gijsbos\Logging\Library\log_info;
 
 /**
  * EntityClassCache
  */
-class EntityClassCache
+class EntityClassCache extends LogEnabledClass
 {
+    public static $CACHE_FOLDER = "cache/entities";
+
     /**
      * ENTITY_MAP
      */
     public static $ENTITY_MAP = null;
-
-    /** */
-    private bool $verbose;
-
-    /**
-     * __construct
-     */
-    public function __construct(bool $verbose = false)
-    {
-        $this->verbose = $verbose;
-    }
 
     /**
      * verifyCacheFileFolder
@@ -40,19 +32,11 @@ class EntityClassCache
     }
 
     /**
-     * getCacheFolder
-     */
-    private function getCacheFolder()
-    {
-        return "cache";
-    }
-
-    /**
      * getCacheFileFilePath
      */
     private function getCacheFileFilePath(string $className) : false | string
     {
-        $cacheFolder = $this->getCacheFolder();
+        $cacheFolder = self::$CACHE_FOLDER;
 
         // Not found
         if($cacheFolder === false)
@@ -211,7 +195,7 @@ class EntityClassCache
      */
     public function getEntityClassReflectionListFromCache() : EntityClassReflectionList
     {
-        $cacheFolder = $this->getCacheFolder();
+        $cacheFolder = self::$CACHE_FOLDER;
 
         $entityClassReflectionList = new EntityClassReflectionList();
 

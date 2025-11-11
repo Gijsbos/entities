@@ -122,7 +122,7 @@ class EntityClassReflection extends ReflectionClass
     /**
      * getEntityClassProperties
      * 
-     * @return EntityClassProperty[] $entityClassProperties - Assoc array containing column[key] = EntityClassProperty[value] pairs
+     * @return EntityClassProperty[string] $entityClassProperties - Assoc array containing column[key] = EntityClassProperty[value] pairs
      */
     public function getEntityClassProperties() : array
     {

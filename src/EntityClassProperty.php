@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace gijsbos\Entities;
 
 use Exception;
-use gijsbos\ExtFuncs\Utils\DocPropertyParser;
 use ReflectionClass;
 use ReflectionProperty;
+use gijsbos\ExtFuncs\Utils\DocPropertyParser;
 
 /**
  * EntityClassProperty
@@ -14,6 +14,7 @@ use ReflectionProperty;
 class EntityClassProperty extends ReflectionProperty
 {
     const BASIC_TYPES = ["string","bool","int","float","double"];
+    const CUSTOM_TYPES = ["datetime","timestamp","json"];
 
     // Filters array types e.g. string[], DateTime[]
     const FILTER_ARRAY_TYPE = 1;
@@ -249,7 +250,7 @@ class EntityClassProperty extends ReflectionProperty
         $type = str_ends_with($type, "[]") ? substr($type, 0, strlen($type) - 2) : $type;
 
         // Default types
-        if(in_array($type, array_merge(self::BASIC_TYPES, ["array","mixed","object"])))
+        if(in_array($type, array_merge(self::BASIC_TYPES, self::CUSTOM_TYPES, ["array","mixed","object"])))
             return $type;
 
         // Get declaring class namespace
@@ -328,14 +329,14 @@ class EntityClassProperty extends ReflectionProperty
     /**
      * parseVarDocCommentProperty
      */
-    public static function parseVarDocCommentProperty(string $key, string $values, EntityClassProperty $entityClassProperty)
+    public static function parseVarDocCommentProperty(string $value, string $key, EntityClassProperty $entityClassProperty)
     {
         // Explode
-        $types = explode(" ", $values);
+        $types = explode(" ", $value);
 
         // Check types is set
         if(count($types) === 0)
-            return $values;
+            return $value;
 
         // Parse types
         $types = self::parseTypes($entityClassProperty, $types[0]);

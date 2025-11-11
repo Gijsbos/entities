@@ -4,28 +4,47 @@ declare(strict_types=1);
 namespace gijsbos\Entities\Parsers;
 
 use DateTime;
-use ReflectionClass;
 use gijsbos\Entities\EntityClass;
 use gijsbos\Entities\EntityClassProperty;
 use gijsbos\Entities\EntityClassType;
+use ReflectionClass;
 
 /**
  * EntityClassPropertyParser
  */
 class EntityClassPropertyParser
 {
+    public static $GLOBAL_DECRYPTER = null;
+
+    private $decrypter = null;
+
     /**
      * __construct
      */
-    public function __construct()
+    public function __construct(mixed $decrypter = null)
     {
-        
+        $this->decrypter = $decrypter ?? self::$GLOBAL_DECRYPTER;
+    }
+
+    /**
+     * decryptStringValue
+     */
+    private function decryptStringValue(EntityClassProperty $entityClassProperty, $value)
+    {
+        if(is_string($value) && strval($value) > 0)
+        {
+            if($entityClassProperty->hasDocProperty("encrypt") || $entityClassProperty->hasDocProperty("encrypted") || $entityClassProperty->hasDocProperty("decrypt"))
+            {
+                return call_user_func_array($this->decrypter, [$value]);
+            }
+        }
+        return strval($value);
     }
 
     /**
      * castStringValue
      */
-    private function castStringValue($value)
+    private function castStringValue(EntityClassProperty $entityClassProperty, $value)
     {
         if(is_object($value))
         {
@@ -33,9 +52,13 @@ class EntityClassPropertyParser
                 return $value->format("c");
         }
         else if(is_array($value))
+        {
             return $value;
+        }
         else
-            return strval($value);
+        {
+            return $this->decryptStringValue($entityClassProperty, $value);
+        }
     }
 
     /**
@@ -43,17 +66,30 @@ class EntityClassPropertyParser
      */
     private function castBooleanValue($value)
     {
+        switch($value)
+        {
+            case "true":
+            case "1":
+            case 1: return true;
+            case "false":
+            case "0":
+            case 0: return false;
+        }
+        
+        return $value;
+    }
+
+    /**
+     * castJsonValue
+     */
+    private function castJsonValue(EntityClassProperty $entityClassProperty, $value)
+    {
         if(is_string($value))
         {
-            switch($value)
-            {
-                case "true": return true;
-                case "1": return true;
-                case "false": return false;
-                case "0": return false;
-                default:
+            $value = $this->decryptStringValue($entityClassProperty, $value);
 
-            }
+            if(strlen($value) > 0 && is_json($value))
+                return json_decode($value, true);
         }
         return $value;
     }
@@ -170,8 +206,7 @@ class EntityClassPropertyParser
         {
             // String
             case ($name === "string"):
-                
-                return $this->castStringValue($value);
+                return $this->castStringValue($entityClassProperty, $value);
 
             // Int or mixed
             case ($name === "int") && is_numeric($value) && strpos("$value", ".") === false:
@@ -182,12 +217,24 @@ class EntityClassPropertyParser
                 return $name === "float" ? floatval($value) : doubleval($value);
 
             // Bool or mixed
-            case ($name === "bool") && in_array($value, ["0","1","true","false"]):
+            case ($name === "bool") && in_array($value, [0,1,"0","1","true","false"]):
                 return $this->castBooleanValue($value);
 
             // Mixed
             case ($name === "mixed"):
                 return typecast($value);
+
+            // Datetime
+            case ($name === "datetime"):
+                return is_string($value) ? (new DateTime())->setTimestamp(strtotime($value))->format("c") : $value;
+
+            // Timestamp
+            case ($name === "timestamp"):
+                return is_string($value) ? strtotime($value) : $value;
+
+            // Json
+            case ($name === "json"):
+                return $this->castJsonValue($entityClassProperty, $value);
 
             // Class
             case class_exists($name):

@@ -3,10 +3,13 @@ declare(strict_types=1);
 
 namespace gijsbos\Entities;
 
+use Error;
 use Exception;
+use gijsbos\Entities\Parsers\EntityClassPropertyParser;
+use InvalidArgumentException;
+use LogicException;
 use ReflectionClass;
 use stdClass;
-use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 
 /**
  * EntityClass
@@ -236,7 +239,7 @@ class EntityClass extends stdClass
 
         // Undefined methods
         else
-            throw new Exception(sprintf("Call to undefined method %s::%s", $className, $method));
+            throw new Error(sprintf("Call to undefined method %s::%s", $className, $method));
     }
 
     /**
@@ -291,14 +294,194 @@ class EntityClass extends stdClass
         return $self;
     }
 
-    // /**
-    //  * export
-    //  */
-    // public function export(...$keys) : array
-    // {
-    //     if(count($keys) && is_array($keys[0]))
-    //         $keys = $keys[0];
+    /**
+     * export
+     */
+    public function export(...$keys) : array
+    {
+        if(count($keys) && is_array($keys[0]))
+            $keys = $keys[0];
 
-    //     return array_filter_keys((array) $this, $keys);
-    // }
+        return array_filter_keys((array) $this, $keys);
+    }
+
+    /**
+     * convertPropertyValueToString
+     */
+    public static function convertPropertyValueToString($value)
+    {
+        if(is_bool($value))
+            return $value ? 'true' : 'false';
+        else if(is_string($value) || is_numeric($value))
+            return strval($value);
+        else if (is_object($value))
+            return get_class($value);
+        else if (is_array($value))
+            return 'array';
+        else if (is_null($value))
+            return 'NULL';
+        else
+            return $value;
+    }
+
+    /**
+     * isSet
+     *  Verifies if property is set, if property is of class type, use value for exact value matching
+     * 
+     * @param string|array|callable $value
+     */
+    public function isSet(string $property, mixed $value = null, bool $throws = false)
+    {
+        $calledClass = get_called_class();
+
+        if(!property_exists($calledClass, $property))
+            throw new InvalidArgumentException("Property '$property' does not exist in object of class '$calledClass'");
+
+        $propertyValue = $this->$property;
+
+        $entityProperty = $this->getEntityClassProperty($property);
+
+        $types = $entityProperty->getTypes();
+
+        // If the object is of class type, we verify the class
+        if($entityProperty->hasClassType())
+        {
+            $classType = reset($types);
+
+            $className = $classType->getName();
+
+            if($propertyValue instanceof $className === false)
+            {
+                if($throws)
+                    throw new InvalidArgumentException("Property value '$property' is not an object of class '$className'");
+
+                return false;
+            }   
+
+            if(!is_null($value)) // Object values need to be verified
+            {
+                if(!is_array($value))
+                    throw new InvalidArgumentException("Property '$property' validator must be of type array");
+                else
+                    return $propertyValue->validateObjectPropertyValues($value, $throws);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // Regular value
+        else
+        {
+            $firstType = reset($types);
+
+            $pattern = null;
+
+            if($firstType->getName() === "string")
+            {
+                $validator = function($v) use ($calledClass, $property, $value, &$pattern)
+                {
+                    if(!is_string($v))
+                        return false;
+
+                    $pattern = null;
+
+                    if(!is_null($value))
+                    {
+                        if(str_starts_with($value, "/") && str_ends_with($value, "/"))
+                            $pattern = $value;
+                        else
+                            return $v == $value;
+                    }
+
+                    $pattern = $pattern ?? $this->__extractDocProperty($calledClass, $property, 'regexp');
+
+                    if($pattern)
+                        return boolval(preg_match($pattern, $v));
+
+                    return strlen($v) !== 0;
+                };
+            }
+            else if($firstType->getName() === "int" || $firstType->getName() === "float" || $firstType->getName() === "double")
+            {
+                $validator = function($v) use ($value)
+                {
+                    return is_numeric($v) && ($value !== null ? $v == $value : true);
+                };
+            }
+            else if($firstType->getName() === "bool")
+            {
+                $validator = function($v) use ($value)
+                {
+                    return is_bool($v) && ($value !== null ? $v == $value : true);
+                };
+            }
+            else if($firstType->getName() === "array")
+            {
+                $validator = function($v) use ($value)
+                {
+                    return is_array($v) && ($value !== null ? $v == $value : true);
+                };
+            }
+            else
+            {
+                $validator = function($v) use ($value)
+                {
+                    return !is_null($v) && ($value !== null ? $v == $value : true);
+                };
+            }  
+
+            // Use validator
+            if(is_callable($validator))
+            {
+                $result = $validator($propertyValue);
+
+                if(!is_bool($result))
+                    throw new LogicException("Invalid object property validator callback return type for property '$property', expected 'bool'");
+
+                if(!$result && $throws)
+                {
+                    $expected = "";
+
+                    if(!is_null($pattern))
+                        $expected = ", expected '$pattern'";
+                    else if(!is_null($value))
+                        $expected = ", expected '".self::convertPropertyValueToString($value)."'";
+                    else if(!is_null($value))
+                        $expected = ", expected '".$firstType->getName()."'";
+
+                    throw new InvalidArgumentException("Property value '{$calledClass}->{$property}' invalid using value '".self::convertPropertyValueToString($propertyValue)."'$expected");
+                }
+
+                return $result;
+            }
+
+            // No validator
+            else
+                throw new InvalidArgumentException("Unsupported property validator for property '$property', expected 'callable|regexp'");
+        }
+    }
+
+    /**
+     * validateObjectPropertyValues
+     */
+    public function validateObjectPropertyValues(array $propertyList, bool $throws = true) : bool
+    {
+        foreach($propertyList as $key => $value)
+        {
+            // Validate object property
+            $property = is_string($key) ? $key : $value;
+            $value = is_string($key) ? $value : null;
+
+            // Verify
+            $result = $this->isSet($property, $value, $throws);
+
+            // Failed
+            if($result === false)
+                return false;
+        }
+
+        return true;
+    }
 }
