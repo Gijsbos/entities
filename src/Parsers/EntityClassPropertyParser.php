@@ -7,7 +7,9 @@ use DateTime;
 use gijsbos\Entities\EntityClass;
 use gijsbos\Entities\EntityClassProperty;
 use gijsbos\Entities\EntityClassType;
+use LogicException;
 use ReflectionClass;
+use RuntimeException;
 
 /**
  * EntityClassPropertyParser
@@ -35,6 +37,9 @@ class EntityClassPropertyParser
         {
             if($entityClassProperty->hasDocProperty("encrypt") || $entityClassProperty->hasDocProperty("encrypted") || $entityClassProperty->hasDocProperty("decrypt"))
             {
+                if($this->decrypter == null)
+                    throw new LogicException("Could not decrypt value, decrypter not set");
+
                 return call_user_func_array($this->decrypter, [$value]);
             }
         }
