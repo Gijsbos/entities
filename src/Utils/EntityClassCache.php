@@ -8,8 +8,6 @@ use gijsbos\Entities\EntityClassReflection;
 use gijsbos\Entities\EntityClassReflectionList;
 use gijsbos\Logging\Classes\LogEnabledClass;
 
-use function gijsbos\Logging\Library\log_info;
-
 /**
  * EntityClassCache
  */
