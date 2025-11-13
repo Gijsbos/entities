@@ -21,6 +21,14 @@ class EntityClassCache extends LogEnabledClass
     public static $ENTITY_MAP = null;
 
     /**
+     * __construct
+     */
+    public function __construct(array $opts = [])
+    {
+        return parent::__construct($opts);
+    }
+
+    /**
      * verifyCacheFileFolder
      */
     private function verifyCacheFileFolder(string $cacheFolder) : void
