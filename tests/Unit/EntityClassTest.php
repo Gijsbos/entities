@@ -233,7 +233,7 @@ final class EntityClassTest extends TestCase
 
     public function testCreateFromArgsBenchmark()
     {
-        $start = startb();
+        $start = bench_start();
 
         for($i = 0; $i < 1000; $i++)
         {
@@ -268,7 +268,7 @@ final class EntityClassTest extends TestCase
         }
 
         // Parse
-        $time = endb($start, "EntityClass::createFromArgs benchmark", false);
+        $time = bench_end($start, "EntityClass::createFromArgs benchmark", false);
 
         // Around 0.34 on 24 jul 2024
         $this->assertTrue($time<0.4);
