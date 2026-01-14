@@ -5,11 +5,12 @@ namespace gijsbos\Entities;
 
 use Error;
 use Exception;
-use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 use InvalidArgumentException;
 use LogicException;
 use ReflectionClass;
 use stdClass;
+
+use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 
 /**
  * EntityClass
@@ -129,7 +130,7 @@ class EntityClass extends stdClass
     /**
      * setProperties
      */
-    public function setProperties(array|object $args, bool $forceUnknownProperties = false, array $customProperties = [], bool $castEntityClasses = true)
+    public function setProperties(array|object $args, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true)
     {
         $entityClassReflection = self::getEntityClassReflection();
 
@@ -143,7 +144,7 @@ class EntityClass extends stdClass
             foreach($args as $propertyName => $value)
             {
                 // Check custom properties
-                if($forceUnknownProperties && array_key_exists($propertyName, $customProperties))
+                if($setUnknownClassProperties && array_key_exists($propertyName, $customProperties))
                 {
                     $this->processCustomProperty($customProperties[$propertyName], $propertyName, $value);
 
@@ -162,24 +163,29 @@ class EntityClass extends stdClass
                     {
                         if(is_array($value) && is_subclass_of($objectValue, EntityClass::class) && $castEntityClasses)
                         {
-                            $objectValue->setProperties($value, $forceUnknownProperties);
+                            $objectValue->setProperties($value, $setUnknownClassProperties);
                         }
                     }
 
                     // Value is not an object
                     else
                     {
-                        // Lookup the entity class property in case it needs to be parsed further
-                        // If forceUnknownProperties is set, an exception is thrown when the property is not found, else the value is set
-                        $entityClassProperty = $entityClassReflection->getEntityClassProperty($propertyName, !$forceUnknownProperties);
+                        // Property exists
+                        if($entityClassReflection->hasEntityClassProperty($propertyName))
+                        {
+                            $entityClassProperty = $entityClassReflection->getEntityClassProperty($propertyName);
 
-                        // Entity class property found
-                        if($entityClassProperty !== false)
-                            $this->$propertyName = EntityClassPropertyParser::parse($entityClassProperty, $value, $forceUnknownProperties);
+                            $this->$propertyName = EntityClassPropertyParser::parse($entityClassProperty, $value, $setUnknownClassProperties);
+                        }
 
-                        // Entity class property not found
+                        // Property does not exist
                         else
-                            $this->$propertyName = $value;
+                        {
+                            if($setUnknownClassProperties) // Set when parameter is set
+                            {
+                                $this->$propertyName = $value;
+                            }
+                        }
                     }
                 }
             }
@@ -189,13 +195,13 @@ class EntityClass extends stdClass
     /**
      * createFromArgs
      */
-    public static function createFromArgs(null|array $args = null, bool $forceUnknownProperties = false, array $customProperties = [], bool $castEntityClasses = true)
+    public static function createFromArgs(null|array $args = null, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true)
     {
         // Create instance
         $instance = (object) self::createEntityClass();
         
         // Set properties
-        $instance->setProperties($args, $forceUnknownProperties, $customProperties, $castEntityClasses);
+        $instance->setProperties($args, $setUnknownClassProperties, $customProperties, $castEntityClasses);
         
         // Return 
         return $instance;
