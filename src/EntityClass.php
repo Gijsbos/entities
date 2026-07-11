@@ -9,8 +9,11 @@ use InvalidArgumentException;
 use LogicException;
 use ReflectionClass;
 use stdClass;
+use ReflectionAttribute;
 
+use gijsbos\Entities\Attributes\PropertyMapper;
 use gijsbos\Entities\Parsers\EntityClassPropertyParser;
+
 
 /**
  * EntityClass
@@ -186,6 +189,12 @@ class EntityClass extends stdClass
                                 $this->$propertyName = $value;
                             }
                         }
+                    }
+
+                    // Process PropertyMapper attribute
+                    if($entityClassReflection->hasProperty($propertyName) && count($mapperProperties = $entityClassReflection->getProperty($propertyName)->getAttributes(PropertyMapper::class, ReflectionAttribute::IS_INSTANCEOF)) > 0)
+                    {
+                        $this->$propertyName = $mapperProperties[0]->newInstance()->execute($this->$propertyName);
                     }
                 }
             }
