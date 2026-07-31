@@ -9,7 +9,6 @@ use gijsbos\Entities\EntityClassProperty;
 use gijsbos\Entities\EntityClassType;
 use LogicException;
 use ReflectionClass;
-use RuntimeException;
 
 /**
  * EntityClassPropertyParser
@@ -288,14 +287,14 @@ class EntityClassPropertyParser
         $types = $property->getTypes();
 
         // Has more than one class type
-        $hasMultipleClassTypes = $property->getTypes(EntityClassProperty::FILTER_CLASS_TYPE);
+        $classTypes = $property->getTypes(EntityClassProperty::FILTER_CLASS_TYPE);
 
         // More than one class
-        if(is_array($value) && count($hasMultipleClassTypes) > 1)
+        if(is_array($value) && count($classTypes) > 1)
         {
             $classMatch = [];
 
-            foreach($property->getTypes(EntityClassProperty::FILTER_CLASS_TYPE) as $type)
+            foreach($classTypes as $type)
             {
                 $className = $type->getName();
                 
@@ -306,11 +305,19 @@ class EntityClassPropertyParser
             $key = array_search(max($classMatch), $classMatch);
 
             // Resolve the class
-            $types = [$property->getTypeByName($key)];
+            $types = array_filter([$property->getTypeByName($key)]);
+        }
+
+        $firstType = reset($types);
+        
+        // When a property has not defined any type e.g. @var string <name>, the types array is empty so we cannot parse the property
+        if($firstType === false)
+        {
+            return $value;
         }
 
         // Return value
-        return $this->castValue($property, reset($types), $value, $forceUnknownProperties, $castEntityClasses);
+        return $this->castValue($property, $firstType, $value, $forceUnknownProperties, $castEntityClasses);
     }
 
     /**
