@@ -14,12 +14,28 @@ use ReflectionAttribute;
 use gijsbos\Entities\Attributes\PropertyMapper;
 use gijsbos\Entities\Parsers\EntityClassPropertyParser;
 
-
 /**
  * EntityClass
  */
 class EntityClass extends stdClass
 {
+    /**
+     * setPropertyMapperEnabled
+     */
+    public function setPropertyMapperEnabled(bool $value)
+    {
+        EntityClassPropertyStorage::setValue(spl_object_id($this), "propertyMapperEnabled", $value);
+        return $this;
+    }
+
+    /**
+     * getPropertyMapperEnabled
+     */
+    public function getPropertyMapperEnabled()
+    {
+        return EntityClassPropertyStorage::getValue(spl_object_id($this), "propertyMapperEnabled");
+    }
+
     /**
      * getEntityClassName
      */
@@ -133,9 +149,12 @@ class EntityClass extends stdClass
     /**
      * setProperties
      */
-    public function setProperties(array|object $args, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true)
+    public function setProperties(array|object $args, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true, bool $propertyMapperEnabled = true)
     {
         $entityClassReflection = self::getEntityClassReflection();
+
+        // Use object value or default
+        $propertyMapperEnabled = $this->getPropertyMapperEnabled() ?? $propertyMapperEnabled;
 
         // Turn args into an array
         $args = is_object($args) ? (array) $args : $args;
@@ -166,7 +185,7 @@ class EntityClass extends stdClass
                     {
                         if(is_array($value) && is_subclass_of($objectValue, EntityClass::class) && $castEntityClasses)
                         {
-                            $objectValue->setProperties($value, $setUnknownClassProperties);
+                            $objectValue->setProperties($value, $setUnknownClassProperties, [], true, $propertyMapperEnabled);
                         }
                     }
 
@@ -192,7 +211,7 @@ class EntityClass extends stdClass
                     }
 
                     // Process PropertyMapper attribute
-                    if($entityClassReflection->hasProperty($propertyName) && count($mapperProperties = $entityClassReflection->getProperty($propertyName)->getAttributes(PropertyMapper::class, ReflectionAttribute::IS_INSTANCEOF)) > 0)
+                    if($propertyMapperEnabled && $entityClassReflection->hasProperty($propertyName) && count($mapperProperties = $entityClassReflection->getProperty($propertyName)->getAttributes(PropertyMapper::class, ReflectionAttribute::IS_INSTANCEOF)) > 0)
                     {
                         $this->$propertyName = $mapperProperties[0]->newInstance()->execute($this->$propertyName);
                     }
@@ -204,13 +223,13 @@ class EntityClass extends stdClass
     /**
      * createFromArgs
      */
-    public static function createFromArgs(null|array $args = null, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true)
+    public static function createFromArgs(null|array $args = null, bool $setUnknownClassProperties = false, array $customProperties = [], bool $castEntityClasses = true, bool $propertyMapperEnabled = true)
     {
         // Create instance
         $instance = (object) self::createEntityClass();
         
         // Set properties
-        $instance->setProperties($args, $setUnknownClassProperties, $customProperties, $castEntityClasses);
+        $instance->setProperties($args, $setUnknownClassProperties, $customProperties, $castEntityClasses, $propertyMapperEnabled);
         
         // Return 
         return $instance;
