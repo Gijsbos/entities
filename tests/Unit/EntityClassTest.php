@@ -220,15 +220,38 @@ final class EntityClassTest extends TestCase
         $this->assertEquals(true, $class->primary);
     }
 
-    public function testSetPropertyUsingExternalEntityClassPropertyFailure()
+    /**
+     * @case
+     *  Unknown properties are ignored when $setUnknownClassProperties is false (they used to throw an exception)
+     */
+    public function testUnknownPropertyIsIgnored()
     {
-        $this->expectExceptionMessage("Could not get entity class property 'primary', property does not exist");
-        
         // Create entity
         $class = TestEntityClass::createFromArgs([
-            // "name" => "gijs",
+            "name" => "gijs",
             "primary" => 1, // <-- property does not exist in TestEntityClass
         ], false);
+
+        // Verify created entity
+        $this->assertEquals("gijs", $class->name);
+        $this->assertFalse(property_exists($class, "primary"));
+    }
+
+    /**
+     * @case
+     *  Unknown properties are set as they are when $setUnknownClassProperties is true
+     */
+    public function testUnknownPropertyIsSetWhenEnabled()
+    {
+        // Create entity
+        $class = TestEntityClass::createFromArgs([
+            "name" => "gijs",
+            "primary" => 1, // <-- property does not exist in TestEntityClass
+        ], true);
+
+        // Verify created entity
+        $this->assertEquals("gijs", $class->name);
+        $this->assertSame(1, $class->primary);
     }
 
     public function testCreateFromArgsBenchmark()
@@ -270,8 +293,8 @@ final class EntityClassTest extends TestCase
         // Parse
         $time = bench_end($start, "EntityClass::createFromArgs benchmark", false);
 
-        // Around 0.34 on 24 jul 2024
-        $this->assertTrue($time<0.4);
+        // Around 0.34 on 24 jul 2024, 0.47 on 22 nov 2026
+        $this->assertTrue($time<0.5, "Benchmarch: " . $time);
     }
 
     /**

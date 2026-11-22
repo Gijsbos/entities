@@ -268,6 +268,10 @@ class EntityClassPropertyParser
         // Get keys
         $keys = array_keys($value);
 
+        // Empty value, nothing to match
+        if(count($keys) === 0)
+            return 0.0;
+
         // Get key overlap
         $intersect = array_intersect($keys, $propertyNames);
 
@@ -276,6 +280,32 @@ class EntityClassPropertyParser
 
         // Return ratio
         return $ratio;
+    }
+
+    /**
+     * resolveClassType
+     *
+     *  Returns the class type whose properties match the keys of the value best (the first type on a tie)
+     *
+     * @param EntityClassType[] $classTypes
+     */
+    private function resolveClassType(array $classTypes, array $value) : EntityClassType
+    {
+        $bestType = null;
+        $bestMatch = -1.0;
+
+        foreach($classTypes as $type)
+        {
+            $match = $this->getEntityClassMatch($type->getName(), $value);
+
+            if($match > $bestMatch)
+            {
+                $bestType = $type;
+                $bestMatch = $match;
+            }
+        }
+
+        return $bestType;
     }
 
     /**
@@ -289,23 +319,30 @@ class EntityClassPropertyParser
         // Has more than one class type
         $classTypes = $property->getTypes(EntityClassProperty::FILTER_CLASS_TYPE);
 
+        // Array of entities with more than one class e.g. A[]|B[] receiving a list: resolve the class per item
+        $entityClassArrayTypes = $property->getTypes(EntityClassProperty::FILTER_ENTITY_CLASS_ARRAY_TYPE);
+
+        if(is_array($value) && count($value) > 0 && array_is_list($value) && count($entityClassArrayTypes) > 1 && $castEntityClasses)
+        {
+            return array_map(function($item) use ($property, $entityClassArrayTypes, $forceUnknownProperties, $castEntityClasses)
+            {
+                // Only map arrays into objects, other values such as values that have already been turned into an object are ignored
+                if(!is_array($item))
+                    return $item;
+
+                // Resolve the class of this item
+                $className = $this->resolveClassType($entityClassArrayTypes, $item)->getName();
+
+                // Cast the item into a single object of that class
+                return $this->castValue($property, new EntityClassType($className, $className), $item, $forceUnknownProperties, $castEntityClasses);
+            }, $value);
+        }
+
         // More than one class
         if(is_array($value) && count($classTypes) > 1)
         {
-            $classMatch = [];
-
-            foreach($classTypes as $type)
-            {
-                $className = $type->getName();
-                
-                $classMatch[$className] = $this->getEntityClassMatch($className, $value);
-            }
-
-            // Get the max key
-            $key = array_search(max($classMatch), $classMatch);
-
             // Resolve the class
-            $types = array_filter([$property->getTypeByName($key)]);
+            $types = [$this->resolveClassType($classTypes, $value)];
         }
 
         $firstType = reset($types);

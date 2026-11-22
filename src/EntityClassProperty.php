@@ -243,8 +243,9 @@ class EntityClassProperty extends ReflectionProperty
      * parseType
      * 
      * @param array $types - Used to check whether the current type should throw an exception when not resolved
+     * @return null|string - null when the type is a class that cannot be resolved (see parseTypes)
      */
-    private static function parseType(ReflectionProperty $property, string $type, array $types)
+    private static function parseType(ReflectionProperty $property, string $type, array $types) : null|string
     {
         // Set type
         $type = str_ends_with($type, "[]") ? substr($type, 0, strlen($type) - 2) : $type;
@@ -288,42 +289,67 @@ class EntityClassProperty extends ReflectionProperty
         }
 
         // If the mixed type has been included, unresolved classess will not throw an exception
-        if(!in_array("mixed", $types))
-        {
-            $parentClass = $property->class;
-            $propertyName = $property->getName();
+        if(in_array("mixed", $types))
+            return "mixed";
 
-            // Set exception for when class cannot be resolved
-            throw new Exception("Could not resolve property type '$type' for property '{$parentClass}->{$propertyName}'");
-        }
-        
-        // Mixed
-        return "mixed";
+        // Unresolved class, parseTypes decides whether another type of the union can be used instead
+        return null;
     }
 
     /**
      * parseTypes
+     *
+     *  A class that cannot be resolved is left out when the union has another type that can be used, e.g.
+     *  '@var \Other\Service\Entity|array' is parsed as 'array' where '\Other\Service\Entity' does not exist,
+     *  and as '\Other\Service\Entity' (cast into an object) where it does. When no type of the union can be
+     *  used, an exception is thrown so typos in a type are still noticed.
      */
     private static function parseTypes(ReflectionProperty $property, $types)
     {
         if(is_string($types))
             $types = explode("|", $types);
 
-        return array_map(function($declaredType) use ($property, $types)
+        $parsedTypes = [];
+        $unresolvedTypes = [];
+
+        foreach($types as $declaredType)
         {
             // If var is defined as '@var $varName' without type, we remove the dollar sign
             $declaredType = $declaredType[0] === "$" ? substr($declaredType, 1) : $declaredType;
 
             // Compare with property name
             if($declaredType === $property->getName())
-                return new EntityClassType("mixed", "mixed");
+            {
+                $parsedTypes[] = new EntityClassType("mixed", "mixed");
+                continue;
+            }
 
             // Parse type
             $type = self::parseType($property, $declaredType, $types);
 
-            // Return type
-            return new EntityClassType($declaredType, $type);
-        }, $types);
+            // Class could not be resolved, left out (in favour of the other types of the union)
+            if($type === null)
+            {
+                $unresolvedTypes[] = str_ends_with($declaredType, "[]") ? substr($declaredType, 0, strlen($declaredType) - 2) : $declaredType;
+                continue;
+            }
+
+            // Add type
+            $parsedTypes[] = new EntityClassType($declaredType, $type);
+        }
+
+        // None of the types of the union can be used
+        if(count($parsedTypes) === 0 && count($unresolvedTypes) > 0)
+        {
+            $type = reset($unresolvedTypes);
+            $parentClass = $property->class;
+            $propertyName = $property->getName();
+
+            // Set exception for when class cannot be resolved
+            throw new Exception("Could not resolve property type '$type' for property '{$parentClass}->{$propertyName}'");
+        }
+
+        return $parsedTypes;
     }
 
     /**
